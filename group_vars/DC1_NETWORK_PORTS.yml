@@ -1,0 +1,252 @@
+---
+### group_vars/DC1_NETWORK_PORTS.yml
+
+connected_endpoints_keys:
+  - key: servers
+    type: server
+  - key: firewalls
+    type: firewall
+  - key: routers
+    type: router
+  # These keys must be defined to be able to use them below.
+  - key: printers
+    type: printers
+  - key: workstations
+    type: workstations
+  - key: generic_devices
+    type: generic_devices
+  - key: access_points
+    type: access_points
+
+#transceiver_qsfp_default_mode_4x10: false
+
+# TODO: RADIUS server connection and dynamic ports.
+port_profiles:
+  - profile: PP-DEFAULTS
+    spanning_tree_portfast: edge
+    # General Data.
+  - profile: PP-DATA
+    mode: access
+    vlans: "20"
+    parent_profile: PP-DEFAULTS
+    # Printers and scanners.
+  - profile: PP-PRN
+    mode: access
+    vlans: "30"
+    parent_profile: PP-DEFAULTS
+    # VOIP Telephone devices.
+  - profile: PP-VOIP
+    mode: access
+    vlans: "40"
+    parent_profile: PP-DEFAULTS
+    # Video like security cameras.
+  - profile: PP-VIDEO
+    mode: access
+    vlans: "50"
+    parent_profile: PP-DEFAULTS
+    # Wi-Fi Access Points
+  - profile: PP-AP
+    mode: access
+    vlans: "60"
+    parent_profile: PP-DEFAULTS
+    # Guest is outbound only, no access to internal devices.
+  - profile: PP-GUEST
+    mode: access
+    vlans: "80"
+    parent_profile: PP-DEFAULTS
+    # Black hole to block unkown devices.
+  - profile: PP-BLACKHOLE
+    mode: access
+    vlans: "90"
+    parent_profile: PP-DEFAULTS
+    # Management network for IT devices.
+  - profile: PP-MNG
+    mode: access
+    vlans: "100"
+    parent_profile: PP-DEFAULTS
+    # Vertical Lift Module devices.
+  - profile: PP-VLM
+    mode: access
+    vlans: "110"
+    parent_profile: PP-DEFAULTS
+    # Workstations that need VOIP and General Data.
+  - profile: PP-WS
+    mode: trunk
+    vlans: "20,40"
+    parent_profile: PP-DEFAULTS
+    # Server VLANs Default(for now), Data, VOIP, Video (needed?)
+    # TODO: Remove vlan=1 later.
+  - profile: PP-SVR
+    mode: trunk
+    vlans: "1,20,40,110"
+    parent_profile: PP-DEFAULTS
+    # Firewall for routing between VLANs
+  - profile: PP-FIREWALL
+    mode: trunk
+    vlans: "20,30,40,50,60,80,110"
+    # Phone 802.1X Authentication
+  - profile: PP-DOT1X
+    mode: "trunk phone"
+    spanning_tree_portfast: edge
+    spanning_tree_bpduguard: enabled
+    poe:
+      priority: critical
+      reboot:
+        action: maintain
+      link_down:
+        action: maintain
+      shutdown:
+        action: power-off
+      limit:
+        class: 4
+    dot1x:
+      port_control: auto
+      reauthentication: true
+      pae:
+        mode: authenticator
+      host_mode:
+        mode: multi-host
+        multi_host_authenticated: true
+      mac_based_authentication:
+        enabled: true
+      timeout:
+        reauth_period: server
+        tx_period: 3
+      reauthorization_request_limit: 3
+
+#servers:
+
+#workstations:
+#  - name: WS2_WHS
+#    rack: RACK2
+#    adapters:
+#      - endpoint_ports: [Eth1]
+#        switch_ports: [Ethernet2]
+#        switches: [LEAF5]
+#        profile: PP-DATA
+
+#generic_devices:
+
+#phones:
+
+printers:
+  - name: PRN2
+    rack: RACK1
+    adapters:
+      - endpoint_ports: [Eth1]
+        switch_ports: [Ethernet5]
+        switches: [LEAF4]
+        profile: PP-PRN
+        
+firewalls:
+  - name: FIREWALL
+    adapters:
+      - endpoint_ports: [Eth1, Eth2]
+        switch_ports: [Ethernet5, Ethernet5]
+        switches: [SPINE1, SPINE2]
+        profile: PP-FIREWALL
+        port_channel:
+          mode: active
+
+
+network_ports:
+# ---------------- RACK1 ----------------
+  - switches:
+      - LEAF[345] # regex match LEAF3 & LEAF4 & LEAF5
+    switch_ports:
+      - Ethernet1-48
+    description: RACK1 Access Port
+    profile: PP-DOT1X
+    native_vlan: 1
+    structured_config:
+      switchport:
+        phone:
+          trunk: untagged
+          vlan: 40
+    dot1x:
+      authentication_failure:
+        action: allow
+        allow_vlan: 90
+
+#  - switches:
+#      - LEAF[345] # regex match LEAF3 & LEAF4 & LEAF5
+#    switch_ports:
+#      - Ethernet33-36
+#    description: RACK1 QSFP Port
+#    transceiver_qsfp_default_mode_4x10: false
+
+# ---------------- RACK1 ToR ----------------
+    # Start by turning ALL ToR switch ports off.
+  - switches:
+      - LEAF[12]
+    switch_ports:
+       - Ethernet1-32
+    description: RACK1 ToR Port
+    enabled: false
+    # Turn on ToR switch ports to be used.
+  - switches:
+      - LEAF[12]
+    switch_ports:
+       # All odd numberd ports 17-31 are for servers.
+       # Could not find a Regex sequence for odd numbered ports.
+       - Ethernet17
+       - Ethernet19
+       - Ethernet21
+       - Ethernet23
+       - Ethernet25
+       - Ethernet27
+       - Ethernet29
+       - Ethernet31
+       #- Ethernet1-16
+       #- Ethernet17-24
+       # Example: Ethernet3/44 Ethernet3/45 ...
+       #- Ethernet3-7/1-48
+       # Doesn't work for 21-29 odd.
+       #- Ethernet2[13579]
+       #- Ethernet[2][13579]
+       #- Ethernet{2}[13579]
+       
+    description: RACK1 ToR Port
+    profile: PP-SVR
+
+# ---------------- IDF1 ----------------
+  - switches:
+      - LEAF6
+    switch_ports:
+      - Ethernet1-48
+    description: IDF1 Access Port
+    profile: PP-AP
+#    native_vlan: 310
+#    structured_config:
+#      switchport:
+#        phone:
+#          trunk: untagged
+#          vlan: 320
+#    dot1x:
+#      authentication_failure:
+#        action: allow
+#        allow_vlan: 330
+#        
+    # Custom Platform Settings
+# Copied default 720XP platform settings, adding more specific platform names for match.
+# These platform types can be assigned to devices as part of nodes/node_group settings.
+#custom_platform_settings:
+#  - platforms:
+#      - 720XP-48ZC2
+#    feature_support:
+#      poe: true
+#      queue_monitor_length_notify: false
+#    reload_delay:
+#      mlag: 300
+#      non_mlag: 330
+#    trident_forwarding_table_partition: flexible exact-match 16000 l2-shared 18000 l3-shared 22000
+#  - platforms:
+#      - 7060CX-32S
+#      - 7050TX-48
+#    feature_support:
+#      poe: false
+#      queue_monitor_length_notify: false
+#    reload_delay:
+#      mlag: 300
+#      non_mlag: 330
+#    trident_forwarding_table_partition: flexible exact-match 16000 l2-shared 18000 l3-shared 22000

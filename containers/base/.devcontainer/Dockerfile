@@ -29,6 +29,8 @@ RUN apt-get update \
     && rm -Rf /usr/share/doc && rm -Rf /usr/share/man \
     && apt-get clean
 
+# UED Route to ContainerLab
+RUN ip route add 172.16.100.0/24 via 192.168.2.220
 # set ANSIBLE_CONFIG to ansible.cfg in local directory
 # this is required to address Ansible ignoring config in a world writable directory
 # on Codespaces, Gitlab Runner, etc.

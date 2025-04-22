@@ -1,0 +1,138 @@
+---
+### group_vars/DC1_FABRIC.yml
+
+# Set the Fabric Name - must match an Ansible Inventory Group
+fabric_name: DC1_FABRIC
+
+# Ansible connectivity definitions
+# eAPI connectivity via HTTPS is specified (as opposed to CLI via SSH)
+ansible_connection: ansible.netcommon.httpapi
+# Specifies that we are indeed using Arista EOS
+ansible_network_os: arista.eos.eos
+# This user/password must exist on the switches to enable Ansible access
+ansible_user: admin
+ansible_password: admin
+# User escalation (to enter enable mode)
+ansible_become: true
+ansible_become_method: enable
+# Use SSL (HTTPS)
+ansible_httpapi_use_ssl: true
+# Do not try to validate certs
+ansible_httpapi_validate_certs: false
+
+# transciever_qsfp... cannot be under l2spine or l2leaf or node.  But it seems to do nothing here.
+# Make all 40G ports a full 40 rather than 4x10G.
+#transceiver_qsfp_default_mode_4x10: false
+    
+# Spine Switches (L2 only)
+l2spine:
+  defaults:
+    platform: cEOS-LAB
+    spanning_tree_mode: mstp
+    spanning_tree_priority: 4096
+    mlag_peer_ipv4_pool: 192.168.0.0/24
+    #transceiver_qsfp_default_mode_4x10: false
+    # ports on both Spine1,Spine2
+    mlag_interfaces: [Ethernet31, Ethernet32]
+  node_groups:
+    - group: SPINES
+      nodes:
+        - name: SPINE1
+          id: 1
+          #platform: DCS-7060CX-32S
+          platform: 7050X3
+          mgmt_ip: 172.16.100.11/24
+        - name: SPINE2
+          id: 2
+          #platform: DCS-7060CX-32S
+          platform: 7050X3
+          mgmt_ip: 172.16.100.12/24
+
+# Leaf Switches
+l2leaf:
+  defaults:
+    platform: cEOS-LAB
+    mlag_peer_ipv4_pool: 192.168.0.0/24
+    uplink_switches: [SPINE1, SPINE2]
+    # local Leaf ports
+    uplink_interfaces: [Ethernet53, Ethernet54]
+    # Between Leaf Access Switches Ethernet49, Ethernet50
+    mlag_interfaces: [Ethernet49, Ethernet50]
+    spanning_tree_mode: mstp
+    spanning_tree_priority: 16384
+#    transceiver_qsfp_default_mode_4x10: false
+
+  node_groups:
+    - group: RACK1
+      mlag: true
+      filter:
+        tags: [datazone, prnzone, voipzone, mngzone, blackholezone, guestzone]
+      nodes:
+        # TOR1
+        - name: LEAF1
+          id: 1
+          #platform: 'DCS-7050TX-48'
+          platform: 7050X3
+          mgmt_ip: 172.16.100.101/24
+          # local leaf uplink ports
+          uplink_interfaces: [Ethernet35, Ethernet36]
+          # Point to spine ports SPINE1port,SPINE2port
+          uplink_switch_interfaces: [Ethernet31, Ethernet31]
+#          transceiver_qsfp_default_mode_4x10: false
+          # TOR2
+        - name: LEAF2
+          id: 2
+          #platform: 7050TX-48
+          platform: 7050X3
+          mgmt_ip: 172.16.100.102/24
+        # # local leaf uplink ports
+          uplink_interfaces: [Ethernet35, Ethernet36]
+          # Point to spine ports SPNIE1port,SPINE2port
+          uplink_switch_interfaces: [Ethernet29, Ethernet29]
+          # Access3
+        - name: LEAF3
+          id: 3
+          platform: 720XP
+          mgmt_ip: 172.16.100.103/24
+          # local leaf uplink ports
+          uplink_interfaces: [Ethernet53, Ethernet54]
+          # Point to spine ports SPINE1port,SPINE2port
+          uplink_switch_interfaces: [Ethernet27, Ethernet27]
+          # Access4
+        - name: LEAF4
+          id: 4
+          platform: 720XP
+          mgmt_ip: 172.16.100.104/24
+          # local leaf uplink ports
+          uplink_interfaces: [Ethernet53, Ethernet54]
+          # Point to spine ports SPINE1port,SPINE2port
+          uplink_switch_interfaces: [Ethernet25, Ethernet25]
+          # Access5
+        - name: LEAF5
+          id: 5
+          platform: 720XP
+          mgmt_ip: 172.16.100.105/24
+          # local leaf uplink ports
+          uplink_interfaces: [Ethernet53, Ethernet54]
+          # Point to spine ports SPINE1port,SPINE2port
+          uplink_switch_interfaces: [Ethernet23, Ethernet23]
+    - group: IDF1
+      mlag: true
+      filter:
+        tags: [datazone, prnzone, voipzone, mngzone, blackholezone, guestzone]
+      nodes:
+        # Access6
+        - name: LEAF6
+          id: 6
+          platform: 720XP
+          mgmt_ip: 172.16.100.106/24
+          uplink_switch_interfaces: [Ethernet21, Ethernet21]
+
+#### Override for vEOS/cEOS Lab Caveats ####
+p2p_uplinks_mtu: 1500
+
+# Documentation
+eos_designs_documentation:
+  connected_endpoints: true
+  topology_csv: false
+  p2p_links_csv: true

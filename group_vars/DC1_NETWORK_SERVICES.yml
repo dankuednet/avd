@@ -1,0 +1,24 @@
+---
+### group_vars/DC1_NETWORK_SERVICES.yml
+
+tenants:
+  - name: MY_FABRIC
+    l2vlans:
+      - id: 10
+        name: 'DATA-NET'
+        tags: [datazone]
+      - id: 20
+        name: 'PRN-NET'
+        tags: [prnzone]
+      - id: 30
+        name: 'VOIP-NET'
+        tags: [voipzone]
+      - id: 50
+        name: 'MNG-NET'
+        tags: [mngzone]
+      - id: 60
+        name: 'GUEST-NET'
+        tags: [guestzone]
+      - id: 100
+        name: 'BLACKHOLE-NET'
+        tags: [blackholezone]

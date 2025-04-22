@@ -1,0 +1,46 @@
+---
+### group_vars/DC1.yml
+
+aaa_authentication:
+  policies:
+    local:
+      allow_nopassword: true
+
+# local users
+local_users:
+  # Username with no password configured
+  - name: arista
+    privilege: 15
+    role: network-admin
+    no_password: true
+
+  # Username with a password
+  - name: admin
+    privilege: 15
+    role: network-admin
+    # TODO: Set New Password.
+    sha512_password: "$6$eucN5ngreuExDgwS$xnD7T8jO..GBDX0DUlp.hn.W7yW94xTjSanqgaQGBzPIhDAsyAl9N4oScHvOMvf07uVBFI4mKMxwdVEUVKgY/."
+
+# OOB Management network default gateway
+mgmt_gateway: 172.16.100.1
+mgmt_interface: Management1
+
+# dns servers.
+name_servers:
+  - 192.168.2.249
+  - 192.168.2.248
+
+# NTP Servers IP or DNS name, first NTP server will be preferred, and sourced from Management VRF
+ntp_settings:
+  server_vrf: use_mgmt_interface_vrf
+  servers:
+    - name: ntp.ued.net
+
+# transciever_qsfp... cannot be under l2spine or l2leaf.
+# Make all 40G ports a full 40 rather than 4x10G.
+#transceiver_qsfp_default_mode_4x10: true
+
+# Establish exec/enable role when logging in to switch
+aaa_authorization:
+  exec:
+    default: local
